@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MirrorGridPuzzle.Core/MirrorGridPuzzle.Core.csproj" />
+    <Project Path="src/MirrorGridPuzzle/MirrorGridPuzzle.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MirrorGridPuzzle.Tests/MirrorGridPuzzle.Tests.csproj" />
+  </Folder>
+</Solution>
