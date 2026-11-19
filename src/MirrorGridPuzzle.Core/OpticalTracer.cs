@@ -26,7 +26,18 @@ public static class OpticalTracer
         Trace(OpticsLevel.Size, OpticsLevel.Source, OpticsLevel.LaunchAngle, OpticsLevel.Target, mirrors);
 
     public static OpticalTrace Trace(int size, Cell source, double launchAngle, Cell target,
-        IReadOnlyList<AngledMirror> mirrors)
+        IReadOnlyList<AngledMirror> mirrors) =>
+        Trace(size, source, launchAngle, target, mirrors, OpticsLevel.AllowedAngles);
+
+    public static OpticalTrace Trace(OpticalBoard board, OpticalBeamRoute beam, IReadOnlyList<AngledMirror> mirrors)
+    {
+        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(beam);
+        return Trace(board.Size, beam.Source, beam.LaunchAngle, beam.Target, mirrors, board.AllowedAngles);
+    }
+
+    private static OpticalTrace Trace(int size, Cell source, double launchAngle, Cell target,
+        IReadOnlyList<AngledMirror> mirrors, IReadOnlyList<int> allowedAngles)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(size, 1);
         ArgumentNullException.ThrowIfNull(mirrors);
@@ -48,7 +59,7 @@ public static class OpticalTracer
         foreach (var mirror in mirrors)
         {
             if (!IsOnBoard(mirror.Cell, size) || !occupiedCells.Add(mirror.Cell) ||
-                !OpticsLevel.AllowedAngles.Contains(mirror.Angle))
+                !allowedAngles.Contains(mirror.Angle))
             {
                 throw new ArgumentException("Mirrors must occupy distinct free cells and use an allowed angle.",
                     nameof(mirrors));
