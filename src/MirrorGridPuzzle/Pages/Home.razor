@@ -12,6 +12,10 @@
             {
                 <p>Angles are measured clockwise from east. Hold Shift to cycle backward.</p>
             }
+            @if (IsSenior)
+            {
+                <p class="preset-name">Preset <strong>@CurrentOpticalBoard.Name</strong></p>
+            }
         </div>
         <div class="game-pickers">
             <div class="game-picker">
@@ -19,7 +23,7 @@
                 <select id="experience-picker" value="@ExperienceStart" @onchange="PickLevel">
                     <option value="0">Beginner</option>
                     <option value="@FirstOpticalIndex">Middle</option>
-                    <option value="@(FirstOpticalIndex + 1)">Senior</option>
+                    <option value="@SeniorIndex">Senior</option>
                 </select>
             </div>
             <div class="game-picker">
@@ -34,7 +38,8 @@
                     {
                         var index = FirstOpticalIndex + opticalIndex;
                         var board = OpticalBoards[opticalIndex];
-                        <option value="@index">@(index + 1). @board.Name (@board.Size×@board.Size)</option>
+                        var name = index == SeniorIndex ? SeniorBoard.Name : board.Name;
+                        <option value="@index">@(index + 1). @name (@board.Size×@board.Size)</option>
                     }
                 </select>
             </div>
@@ -220,13 +225,16 @@
     private AngledMirror[] _angledMirrors = [];
     private DisplayBeam[] _beams = [];
     private int? _stepIndex;
+    private OpticalBoard _seniorPreset = SeniorBoard.Definition;
 
     private static int FirstOpticalIndex => GridLevels.All.Count;
+    private static int SeniorIndex => FirstOpticalIndex + 1;
     private static int LevelCount => FirstOpticalIndex + OpticalBoards.Length;
     private bool IsOptics => _levelIndex >= FirstOpticalIndex;
+    private bool IsSenior => _levelIndex == SeniorIndex;
     private int ExperienceStart => IsOptics ? _levelIndex : 0;
     private GridLevel CurrentGridLevel => GridLevels.All[_levelIndex];
-    private OpticalBoard CurrentOpticalBoard => OpticalBoards[_levelIndex - FirstOpticalIndex];
+    private OpticalBoard CurrentOpticalBoard => IsSenior ? _seniorPreset : OpticalBoards[_levelIndex - FirstOpticalIndex];
     private int BoardSize => IsOptics ? CurrentOpticalBoard.Size : CurrentGridLevel.Size;
     private string BoardStyle => IsOptics
         ? FormattableString.Invariant($"--board-size:{BoardSize};--mirror-span:{200 * OpticsLevel.MirrorHalfLength}%;--target-span:{200 * OpticsLevel.TargetRadius}%")
@@ -282,6 +290,11 @@
 
     private void LoadLevel(int index)
     {
+        if (index == SeniorIndex && !IsSenior)
+        {
+            _seniorPreset = SeniorBoard.PickPreset();
+        }
+
         _levelIndex = index;
         Reset();
     }
