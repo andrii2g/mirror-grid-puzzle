@@ -5,16 +5,20 @@ public static class BeamTracer
     public static BeamTrace Trace(IReadOnlyList<Mirror> mirrors) =>
         Trace(PuzzleLevel.Source, PuzzleLevel.LaunchDirection, PuzzleLevel.Target, mirrors);
 
-    public static BeamTrace Trace(Cell source, Direction direction, Cell target, IReadOnlyList<Mirror> mirrors)
+    public static BeamTrace Trace(Cell source, Direction direction, Cell target, IReadOnlyList<Mirror> mirrors) =>
+        Trace(PuzzleLevel.Size, source, direction, target, mirrors);
+
+    public static BeamTrace Trace(int size, Cell source, Direction direction, Cell target, IReadOnlyList<Mirror> mirrors)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
         ArgumentNullException.ThrowIfNull(mirrors);
 
-        if (!IsOnBoard(source))
+        if (!IsOnBoard(source, size))
         {
             throw new ArgumentOutOfRangeException(nameof(source));
         }
 
-        if (!IsOnBoard(target))
+        if (!IsOnBoard(target, size))
         {
             throw new ArgumentOutOfRangeException(nameof(target));
         }
@@ -29,7 +33,7 @@ public static class BeamTracer
         var path = new List<BeamState>();
         var cell = source;
 
-        while (IsOnBoard(cell))
+        while (IsOnBoard(cell, size))
         {
             var state = new BeamState(cell, direction);
             // Keep the repeated state at the end so the path closes the loop.
@@ -56,8 +60,8 @@ public static class BeamTracer
         return new BeamTrace(BeamOutcome.Exited, path.AsReadOnly()) { ExitDirection = direction };
     }
 
-    private static bool IsOnBoard(Cell cell) =>
-        cell.Row is >= 1 and <= PuzzleLevel.Size && cell.Column is >= 1 and <= PuzzleLevel.Size;
+    private static bool IsOnBoard(Cell cell, int size) =>
+        cell.Row >= 1 && cell.Row <= size && cell.Column >= 1 && cell.Column <= size;
 
     private static Cell Step(Cell cell, Direction direction) => direction switch
     {
