@@ -166,6 +166,11 @@
                 </div>
             </div>
 
+            <div class="history-controls" role="group" aria-label="Rotation history">
+                <button class="history-action" type="button" disabled="@(!_rotationHistory.CanUndo)" @onclick="UndoRotation">Undo</button>
+                <button class="history-action" type="button" disabled="@(!_rotationHistory.CanRedo)" @onclick="RedoRotation">Redo</button>
+            </div>
+
             @if (IsOptics)
             {
                 <fieldset class="mirror-controls">
@@ -251,6 +256,7 @@
 @code {
     private static readonly OpticalBoard[] OpticalBoards = [MiddleBoard.Definition, SeniorBoard.Definition];
 
+    private readonly MirrorRotationHistory _rotationHistory = new();
     private int _levelIndex;
     private int _beamIndex;
     private int _angleMirrorIndex;
@@ -354,7 +360,7 @@
     {
         if (int.TryParse(args.Value?.ToString(), out var angle) && CurrentOpticalBoard.AllowedAngles.Contains(angle))
         {
-            SetAngle(angle);
+            RotateTo(_angleMirrorIndex, angle);
         }
     }
 
@@ -368,31 +374,56 @@
 
     private void Rotate(int index, bool backward)
     {
+        var angle = MirrorAngle(index);
+        if (IsOptics)
+        {
+            var angles = CurrentOpticalBoard.AllowedAngles;
+            var current = Enumerable.Range(0, angles.Count).First(position => angles[position] == angle);
+            var next = (current + (backward ? -1 : 1) + angles.Count) % angles.Count;
+            RotateTo(index, angles[next]);
+        }
+        else
+        {
+            RotateTo(index, -angle);
+        }
+    }
+
+    private void RotateTo(int index, int angle)
+    {
+        if (_rotationHistory.Record(new MirrorRotation(index, MirrorAngle(index), angle)))
+        {
+            ApplyMirrorAngle(index, angle);
+        }
+    }
+
+    private void ApplyMirrorAngle(int index, int angle)
+    {
         if (IsOptics)
         {
             _angleMirrorIndex = index;
-            var angles = CurrentOpticalBoard.AllowedAngles;
-            var current = Enumerable.Range(0, angles.Count).First(position => angles[position] == SelectedAngleMirror.Angle);
-            var next = (current + (backward ? -1 : 1) + angles.Count) % angles.Count;
-            SetAngle(angles[next]);
-            return;
+            _angledMirrors[index] = _angledMirrors[index] with { Angle = angle };
         }
-
-        var mirror = _mirrors[index];
-        var orientation = mirror.Orientation == MirrorOrientation.Slash
-            ? MirrorOrientation.Backslash
-            : MirrorOrientation.Slash;
-        _mirrors[index] = mirror with { Orientation = orientation };
+        else
+        {
+            var orientation = angle < 0 ? MirrorOrientation.Slash : MirrorOrientation.Backslash;
+            _mirrors[index] = _mirrors[index] with { Orientation = orientation };
+        }
         UpdateTraces();
     }
 
-    private void SetAngle(int angle)
+    private void UndoRotation()
     {
-        var mirror = SelectedAngleMirror;
-        if (mirror.Angle != angle)
+        if (_rotationHistory.Undo() is { } rotation)
         {
-            _angledMirrors[_angleMirrorIndex] = mirror with { Angle = angle };
-            UpdateTraces();
+            ApplyMirrorAngle(rotation.MirrorIndex, rotation.PreviousAngle);
+        }
+    }
+
+    private void RedoRotation()
+    {
+        if (_rotationHistory.Redo() is { } rotation)
+        {
+            ApplyMirrorAngle(rotation.MirrorIndex, rotation.NewAngle);
         }
     }
 
@@ -408,6 +439,7 @@
             _mirrors = CurrentGridLevel.StartingMirrors.ToArray();
         }
         _beamIndex = 0;
+        _rotationHistory.Clear();
         UpdateTraces();
     }
 

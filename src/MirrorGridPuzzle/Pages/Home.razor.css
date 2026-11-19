@@ -441,6 +441,7 @@
 .step-beam,
 .reset,
 .next-level,
+.history-action,
 .mirror-action,
 .game-picker select {
     min-height: 2.75rem;
@@ -469,11 +470,17 @@
     font-weight: 650;
 }
 
+.history-controls,
 .mirror-fields,
 .mirror-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+}
+
+.history-action:disabled {
+    opacity: 0.55;
+    cursor: default;
 }
 
 .mirror-actions {
@@ -536,6 +543,7 @@
 }
 
 .reset:hover,
+.history-action:enabled:hover,
 .mirror-action:hover,
 .game-picker select:hover {
     border-color: #7ab3cf;
@@ -545,6 +553,7 @@
 .step-beam:focus-visible,
 .reset:focus-visible,
 .next-level:focus-visible,
+.history-action:focus-visible,
 .mirror-action:focus-visible,
 .game-picker select:focus-visible {
     outline: 2px solid var(--cyan);
