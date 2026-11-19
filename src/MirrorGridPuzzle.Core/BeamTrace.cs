@@ -4,7 +4,8 @@ public enum BeamOutcome
 {
     Exited,
     Looped,
-    TargetHit
+    TargetHit,
+    TraceLimit
 }
 
 public readonly record struct BeamState(Cell Cell, Direction Direction);
