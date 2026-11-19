@@ -3,22 +3,27 @@
 
 <PageTitle>Mirror Grid Puzzle</PageTitle>
 
-<div class="game" style="--board-size:@BoardSize">
+<div class="game @(IsOptics ? "is-optics" : null)" style="@BoardStyle">
     <header class="game-heading">
         <div>
             <h1>Mirror Grid <span>Puzzle</span></h1>
             <p>Rotate the mirrors to guide each beam to its target.</p>
+            @if (IsOptics)
+            {
+                <p>Angles are measured clockwise from east. Hold Shift to cycle backward.</p>
+            }
         </div>
-        <label class="game-picker">
-            Level
-            <select value="@_levelIndex" @onchange="PickLevel">
+        <div class="game-picker">
+            <label for="level-picker">Level</label>
+            <select id="level-picker" value="@_levelIndex" @onchange="PickLevel">
                 @for (var levelIndex = 0; levelIndex < GridLevels.All.Count; levelIndex++)
                 {
                     var level = GridLevels.All[levelIndex];
                     <option value="@levelIndex">@(levelIndex + 1). @level.Name (@level.Size×@level.Size)</option>
                 }
+                <option value="@OpticsIndex">@LevelCount. @OpticsLevel.Name (@OpticsLevel.Size×@OpticsLevel.Size)</option>
             </select>
-        </label>
+        </div>
     </header>
 
     <div class="game-layout">
@@ -42,20 +47,25 @@
                     for (var column = 1; column <= BoardSize; column++)
                     {
                         var cell = new Cell(row, column);
-                        var mirrorIndex = Array.FindIndex(_mirrors, mirror => mirror.Cell == cell);
+                        var mirrorIndex = FindMirror(cell);
 
                         if (mirrorIndex >= 0)
                         {
-                            var mirror = _mirrors[mirrorIndex];
                             var letter = (char)('A' + mirrorIndex);
-                            var isSlash = mirror.Orientation == MirrorOrientation.Slash;
-                            var label = $"Mirror {letter}, row {row}, column {column}, {(isSlash ? "slash" : "backslash")}";
+                            var angle = MirrorAngle(mirrorIndex);
+                            var orientation = IsOptics ? $"{angle} degrees" : angle < 0 ? "slash" : "backslash";
+                            var label = $"Mirror {letter}, row {row}, column {column}, {orientation}";
 
-                            <button class="cell mirror" type="button" aria-label="@label" @onclick="() => Rotate(mirrorIndex)">
+                            <button class="cell mirror" type="button" aria-label="@label"
+                                    @onclick="args => Rotate(mirrorIndex, args.ShiftKey)">
                                 <span class="mirror-plate" aria-hidden="true">
-                                    <span class="mirror-line @(isSlash ? "slash" : "backslash")"></span>
                                     <span class="mirror-letter">@letter</span>
+                                    @if (IsOptics)
+                                    {
+                                        <span class="mirror-angle">@(angle)°</span>
+                                    }
                                 </span>
+                                <span class="mirror-line" style="--mirror-angle:@(angle)deg" aria-hidden="true"></span>
                             </button>
                         }
                         else
@@ -153,15 +163,15 @@
             <div class="replay-controls">
                 @if (HasMultipleBeams)
                 {
-                    <label class="game-picker">
-                        Beam to step
-                        <select value="@_beamIndex" @onchange="PickBeam">
+                    <div class="game-picker">
+                        <label for="beam-picker">Beam to step</label>
+                        <select id="beam-picker" value="@_beamIndex" @onchange="PickBeam">
                             @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
                             {
                                 <option value="@beamIndex">Beam @(beamIndex + 1)</option>
                             }
                         </select>
-                    </label>
+                    </div>
                 }
                 <button class="step-beam" type="button" @onclick="StepBeam">@(IsLastStep ? "Replay beam" : "Step beam")</button>
                 <div class="step-status" role="status" aria-label="Beam step" aria-atomic="true">
@@ -178,7 +188,7 @@
             </div>
 
             <button class="reset" type="button" @onclick="Reset">Reset mirrors</button>
-            @if (BoardOutcome == BeamOutcome.TargetHit && _levelIndex + 1 < GridLevels.All.Count)
+            @if (BoardOutcome == BeamOutcome.TargetHit && _levelIndex + 1 < LevelCount)
             {
                 <button class="next-level" type="button" @onclick="() => LoadLevel(_levelIndex + 1)">Next level</button>
             }
@@ -187,14 +197,23 @@
 </div>
 
 @code {
+    private static readonly int[] OpticalAngles = OpticsLevel.AllowedAngles.ToArray();
+
     private int _levelIndex;
     private int _beamIndex;
     private Mirror[] _mirrors = [];
+    private AngledMirror[] _angledMirrors = [];
     private DisplayBeam[] _beams = [];
     private int? _stepIndex;
 
+    private static int OpticsIndex => GridLevels.All.Count;
+    private static int LevelCount => OpticsIndex + 1;
+    private bool IsOptics => _levelIndex == OpticsIndex;
     private GridLevel Level => GridLevels.All[_levelIndex];
-    private int BoardSize => Level.Size;
+    private int BoardSize => IsOptics ? OpticsLevel.Size : Level.Size;
+    private string BoardStyle => IsOptics
+        ? FormattableString.Invariant($"--board-size:{BoardSize};--mirror-span:{200 * OpticsLevel.MirrorHalfLength}%;--target-span:{200 * OpticsLevel.TargetRadius}%")
+        : $"--board-size:{BoardSize}";
     private bool HasMultipleBeams => _beams.Length > 1;
     private DisplayBeam SelectedBeam => _beams[_beamIndex];
     private DisplayStep? ActiveStep => _stepIndex is { } index ? SelectedBeam.Path[index] : null;
@@ -202,9 +221,11 @@
     private bool IsRepeatedStep => IsLastStep && SelectedBeam.Outcome == BeamOutcome.Looped;
     private int TargetCount => _beams.Count(beam => beam.Outcome == BeamOutcome.TargetHit);
 
-    private BeamOutcome BoardOutcome => TargetCount == _beams.Length
-        ? BeamOutcome.TargetHit
-        : _beams.Any(beam => beam.Outcome == BeamOutcome.Looped) ? BeamOutcome.Looped : BeamOutcome.Exited;
+    private BeamOutcome BoardOutcome => _beams.Length == 1
+        ? SelectedBeam.Outcome
+        : TargetCount == _beams.Length
+            ? BeamOutcome.TargetHit
+            : _beams.Any(beam => beam.Outcome == BeamOutcome.Looped) ? BeamOutcome.Looped : BeamOutcome.Exited;
 
     private string StatusHeading => HasMultipleBeams
         ? BoardOutcome == BeamOutcome.TargetHit ? "All targets hit!" : $"{TargetCount} of {_beams.Length} targets hit"
@@ -212,6 +233,7 @@
         {
             BeamOutcome.TargetHit => "Target hit!",
             BeamOutcome.Looped => "Beam looped",
+            BeamOutcome.TraceLimit => "Trace limit reached",
             _ => "Beam exited"
         };
 
@@ -219,7 +241,7 @@
 
     private void PickLevel(ChangeEventArgs args)
     {
-        if (int.TryParse(args.Value?.ToString(), out var index) && index >= 0 && index < GridLevels.All.Count)
+        if (int.TryParse(args.Value?.ToString(), out var index) && index >= 0 && index < LevelCount)
         {
             LoadLevel(index);
         }
@@ -240,26 +262,51 @@
         }
     }
 
-    private void Rotate(int index)
+    private int FindMirror(Cell cell) => IsOptics
+        ? Array.FindIndex(_angledMirrors, mirror => mirror.Cell == cell)
+        : Array.FindIndex(_mirrors, mirror => mirror.Cell == cell);
+
+    private int MirrorAngle(int index) => IsOptics
+        ? _angledMirrors[index].Angle
+        : _mirrors[index].Orientation == MirrorOrientation.Slash ? -45 : 45;
+
+    private void Rotate(int index, bool backward)
     {
-        var mirror = _mirrors[index];
-        var orientation = mirror.Orientation == MirrorOrientation.Slash
-            ? MirrorOrientation.Backslash
-            : MirrorOrientation.Slash;
-        _mirrors[index] = mirror with { Orientation = orientation };
+        if (IsOptics)
+        {
+            var mirror = _angledMirrors[index];
+            var current = Array.IndexOf(OpticalAngles, mirror.Angle);
+            var next = (current + (backward ? -1 : 1) + OpticalAngles.Length) % OpticalAngles.Length;
+            _angledMirrors[index] = mirror with { Angle = OpticalAngles[next] };
+        }
+        else
+        {
+            var mirror = _mirrors[index];
+            var orientation = mirror.Orientation == MirrorOrientation.Slash
+                ? MirrorOrientation.Backslash
+                : MirrorOrientation.Slash;
+            _mirrors[index] = mirror with { Orientation = orientation };
+        }
         UpdateTraces();
     }
 
     private void Reset()
     {
-        _mirrors = Level.StartingMirrors.ToArray();
+        if (IsOptics)
+        {
+            _angledMirrors = OpticsLevel.StartingMirrors.ToArray();
+        }
+        else
+        {
+            _mirrors = Level.StartingMirrors.ToArray();
+        }
         _beamIndex = 0;
         UpdateTraces();
     }
 
     private void UpdateTraces()
     {
-        _beams = Level.Beams.Select(TraceBeam).ToArray();
+        _beams = IsOptics ? [TraceOpticalBeam()] : Level.Beams.Select(TraceBeam).ToArray();
         _stepIndex = null;
     }
 
@@ -290,6 +337,17 @@
             trace.Outcome, steps, exit, exitHeading);
     }
 
+    private DisplayBeam TraceOpticalBeam()
+    {
+        var trace = OpticalTracer.Trace(_angledMirrors);
+        var steps = trace.Path.Select(step => new DisplayStep(step.Cell, AngleText(step.IncomingAngle),
+            new BoardPoint(step.Point.X, step.Point.Y))).ToArray();
+        var exitHeading = trace.Outcome == BeamOutcome.Exited ? steps[^1].IncomingHeading : null;
+
+        return new DisplayBeam(OpticsLevel.Source, OpticsLevel.Target, AngleText(OpticsLevel.LaunchAngle),
+            OpticsLevel.LaunchAngle, trace.Outcome, steps, null, exitHeading);
+    }
+
     private void StepBeam() => _stepIndex = IsLastStep ? 0 : (_stepIndex ?? -1) + 1;
 
     private static string GetBeamPoints(DisplayBeam beam, int? stepCount = null)
@@ -311,6 +369,7 @@
         {
             BeamOutcome.TargetHit => $"It reached row {last.Cell.Row}, column {last.Cell.Column}.",
             BeamOutcome.Looped => $"It returned to row {last.Cell.Row}, column {last.Cell.Column}, heading {last.IncomingHeading}.",
+            BeamOutcome.TraceLimit => "The beam reached the reflection limit.",
             _ => $"It left the board heading {beam.ExitHeading} from row {last.Cell.Row}, column {last.Cell.Column}."
         };
     }
@@ -329,6 +388,7 @@
     private static BoardPoint CenterOf(Cell cell) => new(cell.Column - 0.5, cell.Row - 0.5);
     private static string SvgNumber(double value) => FormattableString.Invariant($"{value}");
     private static string DirectionText(Direction direction) => direction.ToString().ToLowerInvariant();
+    private static string AngleText(double angle) => FormattableString.Invariant($"{angle:0.##}°");
 
     private static double DirectionAngle(Direction direction) => direction switch
     {

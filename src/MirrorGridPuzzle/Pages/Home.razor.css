@@ -154,19 +154,28 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 78%;
+    width: 58%;
     height: 0.15rem;
     border-radius: 1rem;
     background: #d9edff;
     box-shadow: 0 0 0.3rem #94d3ff8c;
+    transform: translate(-50%, -50%) rotate(var(--mirror-angle));
 }
 
-.mirror-line.slash {
-    transform: translate(-50%, -50%) rotate(-45deg);
+.is-optics .mirror-plate {
+    width: 84%;
 }
 
-.mirror-line.backslash {
-    transform: translate(-50%, -50%) rotate(45deg);
+.is-optics .mirror-line {
+    width: var(--mirror-span);
+}
+
+.mirror-angle {
+    position: absolute;
+    top: 0.14rem;
+    right: 0.18rem;
+    color: var(--text);
+    font: 600 0.75rem ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 .mirror-letter {
@@ -219,6 +228,10 @@
     border: 1px solid var(--marker-color);
     border-radius: 50%;
     content: "";
+}
+
+.is-optics .board .target-symbol {
+    width: var(--target-span);
 }
 
 .board[data-beam-count="2"] .target-symbol[data-beam="0"],
