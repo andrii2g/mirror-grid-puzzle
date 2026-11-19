@@ -247,6 +247,22 @@
     stroke-width: 0.039;
 }
 
+.beam-overlay.replaying .beam-history {
+    opacity: 0.22;
+}
+
+.step-marker {
+    fill: #0b1724;
+    fill-opacity: 0.8;
+    stroke: var(--beam);
+    stroke-width: 0.05;
+}
+
+.step-marker.repeated {
+    fill: var(--amber);
+    stroke: #fff1d8;
+}
+
 .game-controls {
     display: grid;
     gap: 1rem;
@@ -328,6 +344,7 @@
     border-width: 1px;
 }
 
+.step-beam,
 .reset {
     min-height: 2.75rem;
     padding: 0.55rem 0.85rem;
@@ -340,11 +357,43 @@
     cursor: pointer;
 }
 
+.replay-controls {
+    display: grid;
+}
+
+.step-beam {
+    border-color: #4c96a6;
+    background: #183b47;
+}
+
+.step-beam:hover {
+    border-color: var(--cyan);
+    background: #214958;
+}
+
+.step-status:not(:empty) {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.75rem 0.2rem 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.step-status strong {
+    color: var(--text);
+}
+
+.repeat-status {
+    color: var(--amber);
+}
+
 .reset:hover {
     border-color: #7ab3cf;
     background: #23415a;
 }
 
+.step-beam:focus-visible,
 .reset:focus-visible {
     outline: 2px solid var(--cyan);
     outline-offset: 3px;
