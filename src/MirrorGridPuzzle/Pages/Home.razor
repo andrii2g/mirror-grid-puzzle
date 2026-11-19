@@ -1,7 +1,167 @@
-﻿@page "/"
+@page "/"
+@using MirrorGridPuzzle.Core
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Mirror Grid Puzzle</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="game">
+    <header class="game-heading">
+        <h1>Mirror Grid <span>Puzzle</span></h1>
+        <p>Rotate the five mirrors to guide the beam from its source to the target.</p>
+    </header>
 
-Welcome to your new app.
+    <div class="game-layout">
+        <section class="board-frame" aria-label="Six by six mirror grid">
+            <div class="column-axis" aria-hidden="true">
+                @for (var column = 1; column <= PuzzleLevel.Size; column++)
+                {
+                    <span>@column</span>
+                }
+            </div>
+            <div class="row-axis" aria-hidden="true">
+                @for (var row = 1; row <= PuzzleLevel.Size; row++)
+                {
+                    <span>@row</span>
+                }
+            </div>
+
+            <div class="board" data-outcome="@_trace.Outcome">
+                @for (var row = 1; row <= PuzzleLevel.Size; row++)
+                {
+                    for (var column = 1; column <= PuzzleLevel.Size; column++)
+                    {
+                        var cell = new Cell(row, column);
+                        var mirrorIndex = Array.FindIndex(_mirrors, mirror => mirror.Cell == cell);
+
+                        if (mirrorIndex >= 0)
+                        {
+                            var mirror = _mirrors[mirrorIndex];
+                            var letter = (char)('A' + mirrorIndex);
+                            var isSlash = mirror.Orientation == MirrorOrientation.Slash;
+                            var label = $"Mirror {letter}, row {row}, column {column}, {(isSlash ? "slash" : "backslash")}";
+
+                            <button class="cell mirror" type="button" aria-label="@label" @onclick="() => Rotate(mirrorIndex)">
+                                <span class="mirror-plate" aria-hidden="true">
+                                    <span class="mirror-line @(isSlash ? "slash" : "backslash")"></span>
+                                    <span class="mirror-letter">@letter</span>
+                                </span>
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="cell" aria-hidden="true">
+                                @if (cell == PuzzleLevel.Source)
+                                {
+                                    <span class="source-symbol"></span>
+                                }
+                                else if (cell == PuzzleLevel.Target)
+                                {
+                                    <span class="target-symbol"></span>
+                                }
+                            </div>
+                        }
+                    }
+                }
+
+                @{
+                    var points = GetBeamPoints();
+                }
+
+                <svg class="beam-overlay" viewBox="0 0 6 6" aria-hidden="true">
+                    <polyline class="beam-halo" points="@points" />
+                    <polyline class="beam-line" points="@points" />
+                </svg>
+            </div>
+        </section>
+
+        <aside class="game-controls" aria-label="Puzzle controls">
+            <div class="beam-status" data-outcome="@_trace.Outcome" role="status" aria-atomic="true">
+                <span class="status-light" aria-hidden="true"></span>
+                <div>
+                    <h2>@StatusHeading</h2>
+                    <p>@StatusDescription</p>
+                </div>
+            </div>
+
+            <dl class="board-key">
+                <div>
+                    <dt><span class="key-icon"><span class="source-symbol"></span></span> Source</dt>
+                    <dd>Row @PuzzleLevel.Source.Row, column @PuzzleLevel.Source.Column · east</dd>
+                </div>
+                <div>
+                    <dt><span class="key-icon"><span class="target-symbol"></span></span> Target</dt>
+                    <dd>Row @PuzzleLevel.Target.Row, column @PuzzleLevel.Target.Column</dd>
+                </div>
+            </dl>
+
+            <button class="reset" type="button" @onclick="Reset">Reset mirrors</button>
+        </aside>
+    </div>
+</div>
+
+@code {
+    private Mirror[] _mirrors = PuzzleLevel.StartingMirrors.ToArray();
+    private BeamTrace _trace = BeamTracer.Trace(PuzzleLevel.StartingMirrors);
+
+    private string StatusHeading => _trace.Outcome switch
+    {
+        BeamOutcome.TargetHit => "Target hit!",
+        BeamOutcome.Looped => "Beam looped",
+        _ => "Beam exited"
+    };
+
+    private string StatusDescription
+    {
+        get
+        {
+            var last = _trace.Path[^1];
+            return _trace.Outcome switch
+            {
+                BeamOutcome.TargetHit => "The beam reached the target through all five mirrors.",
+                BeamOutcome.Looped => $"It returned to row {last.Cell.Row}, column {last.Cell.Column}, heading {DirectionText(last.Direction)}.",
+                _ => $"It left the board heading {DirectionText(_trace.ExitDirection!.Value)} from row {last.Cell.Row}, column {last.Cell.Column}."
+            };
+        }
+    }
+
+    private void Rotate(int index)
+    {
+        var mirror = _mirrors[index];
+        var orientation = mirror.Orientation == MirrorOrientation.Slash
+            ? MirrorOrientation.Backslash
+            : MirrorOrientation.Slash;
+        _mirrors[index] = mirror with { Orientation = orientation };
+        _trace = BeamTracer.Trace(_mirrors);
+    }
+
+    private void Reset()
+    {
+        _mirrors = PuzzleLevel.StartingMirrors.ToArray();
+        _trace = BeamTracer.Trace(_mirrors);
+    }
+
+    private string GetBeamPoints()
+    {
+        var points = _trace.Path.Select(state => ToPoint(state.Cell));
+
+        if (_trace.ExitDirection is { } exitDirection)
+        {
+            var (dx, dy) = exitDirection switch
+            {
+                Direction.North => (0d, -0.5),
+                Direction.East => (0.5, 0d),
+                Direction.South => (0d, 0.5),
+                Direction.West => (-0.5, 0d),
+                _ => throw new ArgumentOutOfRangeException(nameof(exitDirection))
+            };
+
+            points = points.Append(ToPoint(_trace.Path[^1].Cell, dx, dy));
+        }
+
+        return string.Join(" ", points);
+    }
+
+    private static string ToPoint(Cell cell, double dx = 0, double dy = 0) =>
+        FormattableString.Invariant($"{cell.Column - 0.5 + dx},{cell.Row - 0.5 + dy}");
+
+    private static string DirectionText(Direction direction) => direction.ToString().ToLowerInvariant();
+}

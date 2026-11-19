@@ -4,18 +4,17 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MirrorGridPuzzle</title>
+    <title>Mirror Grid</title>
     <base href="/" />
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
-    <!-- If you add any scoped CSS files, uncomment the following to load them
-    <link href="MirrorGridPuzzle.styles.css" rel="stylesheet" /> -->
+    <link rel="stylesheet" href="MirrorGridPuzzle.styles.css" />
     <script type="importmap"></script>
 </head>
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
+        <svg class="loading-progress" aria-hidden="true">
             <circle r="40%" cx="50%" cy="50%" />
             <circle r="40%" cx="50%" cy="50%" />
         </svg>
@@ -23,9 +22,9 @@
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
+        Mirror Grid encountered an error.
         <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
+        <button type="button" class="dismiss" aria-label="Dismiss error">×</button>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>

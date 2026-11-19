@@ -1,0 +1,378 @@
+.game {
+    --text: #f0f6fc;
+    --muted: #a6bbcd;
+    --rim: #2c4157;
+    --surface: #101e2d;
+    --cyan: #64e9ff;
+    --amber: #ffcf83;
+    --green: #85f2b8;
+
+    box-sizing: border-box;
+    max-width: 65rem;
+    margin-inline: auto;
+    padding: clamp(2rem, 7vh, 4.25rem) clamp(0.875rem, 4vw, 2.5rem) 2.5rem;
+    color: var(--text);
+}
+
+.game-heading {
+    margin-bottom: clamp(1.25rem, 4vw, 2.25rem);
+}
+
+.game-heading h1 {
+    margin: 0;
+    font-size: clamp(2.3rem, 6vw, 4.5rem);
+    font-weight: 750;
+    letter-spacing: -0.065em;
+    line-height: 1.05;
+}
+
+.game-heading h1 span {
+    color: var(--cyan);
+}
+
+.game-heading h1:focus {
+    outline: none;
+}
+
+.game-heading p {
+    margin: 0.85rem 0 0;
+    color: var(--muted);
+    font-size: clamp(1rem, 2vw, 1.14rem);
+    line-height: 1.5;
+}
+
+.game-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+    align-items: start;
+    gap: clamp(1rem, 3vw, 2rem);
+}
+
+.board-frame {
+    --axis: 1.45rem;
+
+    display: grid;
+    grid-template-columns: var(--axis) minmax(0, 1fr);
+    grid-template-rows: var(--axis) auto;
+    padding: 0.6rem 0.95rem 0.95rem 0.6rem;
+    border: 1px solid var(--rim);
+    border-radius: 1.1rem;
+    background: linear-gradient(145deg, #162739, #0d1926 75%);
+    box-shadow: 0 1.5rem 3rem -2rem #000b;
+}
+
+.column-axis,
+.row-axis {
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font: 500 0.875rem ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.column-axis {
+    grid-column: 2;
+    grid-template-columns: repeat(6, 1fr);
+    padding-bottom: 0.25rem;
+}
+
+.row-axis {
+    grid-row: 2;
+    grid-template-rows: repeat(6, 1fr);
+    padding-right: 0.22rem;
+}
+
+.board {
+    --beam: var(--cyan);
+
+    position: relative;
+    display: grid;
+    grid-column: 2;
+    grid-row: 2;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+    overflow: hidden;
+    aspect-ratio: 1;
+    border: 1px solid #334c63;
+    border-radius: 0.55rem;
+    background: #0b1724;
+}
+
+.board[data-outcome="Looped"],
+.beam-status[data-outcome="Looped"] {
+    --beam: var(--amber);
+}
+
+.board[data-outcome="TargetHit"],
+.beam-status[data-outcome="TargetHit"] {
+    --beam: var(--green);
+}
+
+.cell {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    box-shadow: inset -1px -1px #25394d;
+}
+
+.mirror {
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+}
+
+.mirror-plate {
+    position: relative;
+    width: 74%;
+    aspect-ratio: 1;
+    border: 1px solid #395773;
+    border-radius: clamp(0.35rem, 1vw, 0.6rem);
+    background: linear-gradient(145deg, #233a51, #15293d);
+    box-shadow: 0 0.22rem 0.5rem #0005;
+}
+
+.mirror:hover .mirror-plate {
+    border-color: #83b2d6;
+    background: linear-gradient(145deg, #2b4963, #1c354b);
+}
+
+.mirror:focus-visible {
+    z-index: 1;
+    outline: 2px solid var(--cyan);
+    outline-offset: -3px;
+}
+
+.mirror-line {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 78%;
+    height: 0.15rem;
+    border-radius: 1rem;
+    background: #d9edff;
+    box-shadow: 0 0 0.3rem #94d3ff8c;
+}
+
+.mirror-line.slash {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.mirror-line.backslash {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.mirror-letter {
+    position: absolute;
+    right: 0.22rem;
+    bottom: 0.14rem;
+    color: #b0c6da;
+    font: 500 0.75rem ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.source-symbol {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 48%;
+    aspect-ratio: 1;
+    border: 1px solid #53c9df;
+    border-radius: 50%;
+    background: #0e3645;
+    box-shadow: 0 0 0.6rem #44dfff3d;
+}
+
+.source-symbol::after {
+    width: 50%;
+    aspect-ratio: 1;
+    background: var(--cyan);
+    clip-path: polygon(0 34%, 56% 34%, 56% 0, 100% 50%, 56% 100%, 56% 66%, 0 66%);
+    content: "";
+}
+
+.target-symbol {
+    display: grid;
+    place-items: center;
+    width: 48%;
+    aspect-ratio: 1;
+    border: 2px solid #d5a4ff;
+    border-radius: 50%;
+    background: #3c2454;
+}
+
+.target-symbol::after {
+    width: 48%;
+    aspect-ratio: 1;
+    border: 1px solid #d5a4ff;
+    border-radius: 50%;
+    content: "";
+}
+
+.board[data-outcome="TargetHit"] .target-symbol {
+    border-color: var(--green);
+    background: #144633;
+    box-shadow: 0 0 1.15rem #85f2b88c;
+}
+
+.board[data-outcome="TargetHit"] .target-symbol::after {
+    border-color: var(--green);
+}
+
+.beam-overlay {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.beam-line,
+.beam-halo {
+    fill: none;
+    stroke: var(--beam);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.beam-halo {
+    opacity: 0.24;
+    stroke-width: 0.13;
+}
+
+.beam-line {
+    stroke-width: 0.039;
+}
+
+.game-controls {
+    display: grid;
+    gap: 1rem;
+}
+
+.beam-status {
+    --beam: var(--cyan);
+
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+    padding: 1.05rem;
+    border: 1px solid color-mix(in srgb, var(--beam) 40%, var(--rim));
+    border-radius: 0.9rem;
+    background: linear-gradient(140deg, color-mix(in srgb, var(--beam) 11%, var(--surface)), var(--surface) 75%);
+}
+
+.status-light {
+    width: 0.52rem;
+    aspect-ratio: 1;
+    margin-top: 0.47rem;
+    border-radius: 50%;
+    background: var(--beam);
+    box-shadow: 0 0 0.55rem var(--beam);
+}
+
+.beam-status h2 {
+    margin: 0;
+    color: var(--beam);
+    font-size: 1.25rem;
+    line-height: 1.2;
+}
+
+.beam-status p {
+    margin: 0.45rem 0 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.board-key {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0;
+    padding: 0.95rem 1.05rem;
+    border: 1px solid var(--rim);
+    border-radius: 0.9rem;
+    background: var(--surface);
+}
+
+.board-key dt {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-weight: 650;
+}
+
+.board-key dd {
+    margin: 0.15rem 0 0 1.9rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.key-icon {
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    aspect-ratio: 1;
+}
+
+.key-icon .source-symbol,
+.key-icon .target-symbol {
+    box-sizing: border-box;
+    width: 1.12rem;
+}
+
+.key-icon .target-symbol {
+    border-width: 1px;
+}
+
+.reset {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid #41617b;
+    border-radius: 0.65rem;
+    background: #1a3044;
+    color: var(--text);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.reset:hover {
+    border-color: #7ab3cf;
+    background: #23415a;
+}
+
+.reset:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+}
+
+@media (max-width: 48rem) {
+    .game {
+        max-width: 37rem;
+    }
+
+    .game-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 28rem) {
+    .board-frame {
+        --axis: 1.2rem;
+
+        padding: 0.38rem 0.6rem 0.6rem 0.38rem;
+    }
+
+    .mirror-plate {
+        width: 80%;
+    }
+
+    .mirror-letter {
+        right: 0.14rem;
+        bottom: 0.06rem;
+    }
+}
