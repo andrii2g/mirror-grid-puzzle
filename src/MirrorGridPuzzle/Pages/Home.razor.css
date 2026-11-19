@@ -4,17 +4,22 @@
     --rim: #2c4157;
     --surface: #101e2d;
     --cyan: #64e9ff;
+    --beam-two: #eda8ff;
     --amber: #ffcf83;
     --green: #85f2b8;
 
     box-sizing: border-box;
-    max-width: 65rem;
+    max-width: min(65rem, calc(35rem + var(--board-size) * 5rem));
     margin-inline: auto;
     padding: clamp(2rem, 7vh, 4.25rem) clamp(0.875rem, 4vw, 2.5rem) 2.5rem;
     color: var(--text);
 }
 
 .game-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+    align-items: end;
+    gap: clamp(1rem, 3vw, 2rem);
     margin-bottom: clamp(1.25rem, 4vw, 2.25rem);
 }
 
@@ -71,13 +76,13 @@
 
 .column-axis {
     grid-column: 2;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(var(--board-size), 1fr);
     padding-bottom: 0.25rem;
 }
 
 .row-axis {
     grid-row: 2;
-    grid-template-rows: repeat(6, 1fr);
+    grid-template-rows: repeat(var(--board-size), 1fr);
     padding-right: 0.22rem;
 }
 
@@ -88,8 +93,8 @@
     display: grid;
     grid-column: 2;
     grid-row: 2;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--board-size), minmax(0, 1fr));
     overflow: hidden;
     aspect-ratio: 1;
     border: 1px solid #334c63;
@@ -173,51 +178,80 @@
 }
 
 .source-symbol {
+    --marker-color: var(--cyan);
+
     position: relative;
     display: grid;
     place-items: center;
     width: 48%;
     aspect-ratio: 1;
-    border: 1px solid #53c9df;
+    border: 1px solid var(--marker-color);
     border-radius: 50%;
-    background: #0e3645;
-    box-shadow: 0 0 0.6rem #44dfff3d;
+    background: color-mix(in srgb, var(--marker-color) 20%, #0b1724);
+    box-shadow: 0 0 0.6rem color-mix(in srgb, var(--marker-color) 25%, transparent);
 }
 
 .source-symbol::after {
     width: 50%;
     aspect-ratio: 1;
-    background: var(--cyan);
+    background: var(--marker-color);
     clip-path: polygon(0 34%, 56% 34%, 56% 0, 100% 50%, 56% 100%, 56% 66%, 0 66%);
+    transform: rotate(var(--launch-angle, 0deg));
     content: "";
 }
 
 .target-symbol {
+    --marker-color: #d5a4ff;
+
+    position: relative;
     display: grid;
     place-items: center;
     width: 48%;
     aspect-ratio: 1;
-    border: 2px solid #d5a4ff;
+    border: 2px solid var(--marker-color);
     border-radius: 50%;
-    background: #3c2454;
+    background: color-mix(in srgb, var(--marker-color) 20%, #0b1724);
 }
 
 .target-symbol::after {
     width: 48%;
     aspect-ratio: 1;
-    border: 1px solid #d5a4ff;
+    border: 1px solid var(--marker-color);
     border-radius: 50%;
     content: "";
 }
 
-.board[data-outcome="TargetHit"] .target-symbol {
-    border-color: var(--green);
-    background: #144633;
-    box-shadow: 0 0 1.15rem #85f2b88c;
+.board[data-beam-count="2"] .target-symbol[data-beam="0"],
+.board-key[data-beam-count="2"] .target-symbol[data-beam="0"] {
+    --marker-color: var(--cyan);
 }
 
-.board[data-outcome="TargetHit"] .target-symbol::after {
-    border-color: var(--green);
+.source-symbol[data-beam="1"],
+.target-symbol[data-beam="1"] {
+    --marker-color: var(--beam-two);
+}
+
+.target-symbol[data-hit="true"] {
+    box-shadow: 0 0 0 2px var(--green), 0 0 1.15rem #85f2b88c;
+}
+
+.board[data-beam-count="1"] .target-symbol[data-hit="true"] {
+    --marker-color: var(--green);
+}
+
+.endpoint-number {
+    position: absolute;
+    z-index: 1;
+    inset: auto -0.35rem -0.3rem auto;
+    display: grid;
+    place-items: center;
+    width: 1.02rem;
+    aspect-ratio: 1;
+    border: 1px solid var(--marker-color);
+    border-radius: 50%;
+    background: #0b1724;
+    color: var(--marker-color);
+    font: 650 0.68rem ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 .beam-overlay {
@@ -245,6 +279,18 @@
 
 .beam-line {
     stroke-width: 0.039;
+}
+
+.board[data-beam-count="2"] .beam-color[data-beam="0"] {
+    --beam: var(--cyan);
+}
+
+.board[data-beam-count="2"] .beam-color[data-beam="1"] {
+    --beam: var(--beam-two);
+}
+
+.beam-history[data-beam="1"] .beam-line {
+    stroke-dasharray: 0.11 0.07;
 }
 
 .beam-overlay.replaying .beam-history {
@@ -303,6 +349,30 @@
     line-height: 1.5;
 }
 
+.beam-results {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.65rem 0 0;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    list-style: none;
+}
+
+.beam-results li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.beam-results strong {
+    color: var(--cyan);
+}
+
+.beam-results li[data-beam="1"] strong {
+    color: var(--beam-two);
+}
+
 .board-key {
     display: grid;
     gap: 0.85rem;
@@ -345,7 +415,9 @@
 }
 
 .step-beam,
-.reset {
+.reset,
+.next-level,
+.game-picker select {
     min-height: 2.75rem;
     padding: 0.55rem 0.85rem;
     border: 1px solid #41617b;
@@ -359,6 +431,20 @@
 
 .replay-controls {
     display: grid;
+    gap: 0.65rem;
+}
+
+.game-picker {
+    display: grid;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    font-weight: 650;
+}
+
+.game-picker select {
+    width: 100%;
+    min-width: 0;
 }
 
 .step-beam {
@@ -374,7 +460,7 @@
 .step-status:not(:empty) {
     display: grid;
     gap: 0.3rem;
-    padding: 0.75rem 0.2rem 0;
+    padding: 0.1rem 0.2rem 0;
     color: var(--muted);
     font-size: 0.875rem;
     line-height: 1.4;
@@ -388,15 +474,28 @@
     color: var(--amber);
 }
 
-.reset:hover {
+.reset:hover,
+.game-picker select:hover {
     border-color: #7ab3cf;
     background: #23415a;
 }
 
 .step-beam:focus-visible,
-.reset:focus-visible {
+.reset:focus-visible,
+.next-level:focus-visible,
+.game-picker select:focus-visible {
     outline: 2px solid var(--cyan);
     outline-offset: 3px;
+}
+
+.next-level {
+    border-color: var(--cyan);
+    background: var(--cyan);
+    color: #0b1724;
+}
+
+.next-level:hover {
+    background: #a5f3ff;
 }
 
 @media (max-width: 48rem) {
@@ -404,6 +503,7 @@
         max-width: 37rem;
     }
 
+    .game-heading,
     .game-layout {
         grid-template-columns: minmax(0, 1fr);
     }

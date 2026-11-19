@@ -3,31 +3,43 @@
 
 <PageTitle>Mirror Grid Puzzle</PageTitle>
 
-<div class="game">
+<div class="game" style="--board-size:@BoardSize">
     <header class="game-heading">
-        <h1>Mirror Grid <span>Puzzle</span></h1>
-        <p>Rotate the five mirrors to guide the beam from its source to the target.</p>
+        <div>
+            <h1>Mirror Grid <span>Puzzle</span></h1>
+            <p>Rotate the mirrors to guide each beam to its target.</p>
+        </div>
+        <label class="game-picker">
+            Level
+            <select value="@_levelIndex" @onchange="PickLevel">
+                @for (var levelIndex = 0; levelIndex < GridLevels.All.Count; levelIndex++)
+                {
+                    var level = GridLevels.All[levelIndex];
+                    <option value="@levelIndex">@(levelIndex + 1). @level.Name (@level.Size×@level.Size)</option>
+                }
+            </select>
+        </label>
     </header>
 
     <div class="game-layout">
-        <section class="board-frame" aria-label="Six by six mirror grid">
+        <section class="board-frame" aria-label="@($"{BoardSize} by {BoardSize} mirror grid")">
             <div class="column-axis" aria-hidden="true">
-                @for (var column = 1; column <= PuzzleLevel.Size; column++)
+                @for (var column = 1; column <= BoardSize; column++)
                 {
                     <span>@column</span>
                 }
             </div>
             <div class="row-axis" aria-hidden="true">
-                @for (var row = 1; row <= PuzzleLevel.Size; row++)
+                @for (var row = 1; row <= BoardSize; row++)
                 {
                     <span>@row</span>
                 }
             </div>
 
-            <div class="board" data-outcome="@_trace.Outcome">
-                @for (var row = 1; row <= PuzzleLevel.Size; row++)
+            <div class="board" data-outcome="@BoardOutcome" data-beam-count="@_beams.Length">
+                @for (var row = 1; row <= BoardSize; row++)
                 {
-                    for (var column = 1; column <= PuzzleLevel.Size; column++)
+                    for (var column = 1; column <= BoardSize; column++)
                     {
                         var cell = new Cell(row, column);
                         var mirrorIndex = Array.FindIndex(_mirrors, mirror => mirror.Cell == cell);
@@ -48,66 +60,115 @@
                         }
                         else
                         {
+                            var sourceIndex = Array.FindIndex(_beams, beam => beam.Source == cell);
+                            var targetIndex = Array.FindIndex(_beams, beam => beam.Target == cell);
+
                             <div class="cell" aria-hidden="true">
-                                @if (cell == PuzzleLevel.Source)
+                                @if (sourceIndex >= 0)
                                 {
-                                    <span class="source-symbol"></span>
+                                    <span class="source-symbol" data-beam="@sourceIndex" style="@LaunchStyle(_beams[sourceIndex])">
+                                        @if (HasMultipleBeams)
+                                        {
+                                            <span class="endpoint-number">@(sourceIndex + 1)</span>
+                                        }
+                                    </span>
                                 }
-                                else if (cell == PuzzleLevel.Target)
+                                else if (targetIndex >= 0)
                                 {
-                                    <span class="target-symbol"></span>
+                                    <span class="target-symbol" data-beam="@targetIndex"
+                                          data-hit="@(_beams[targetIndex].Outcome == BeamOutcome.TargetHit ? "true" : "false")">
+                                        @if (HasMultipleBeams)
+                                        {
+                                            <span class="endpoint-number">@(targetIndex + 1)</span>
+                                        }
+                                    </span>
                                 }
                             </div>
                         }
                     }
                 }
 
-                @{
-                    var points = GetBeamPoints();
-                }
-
-                <svg class="beam-overlay @(ActiveStep is null ? null : "replaying")" viewBox="0 0 6 6" aria-hidden="true">
-                    <g class="beam-history">
-                        <polyline class="beam-halo" points="@points" />
-                        <polyline class="beam-line" points="@points" />
-                    </g>
-                    @if (ActiveStep is { } markerStep)
+                <svg class="beam-overlay @(ActiveStep is null ? null : "replaying")"
+                     viewBox="@($"0 0 {BoardSize} {BoardSize}")" aria-hidden="true">
+                    @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
                     {
-                        <polyline class="beam-line" points="@GetBeamPoints(_stepIndex!.Value + 1)" />
-                        <circle class="step-marker @(IsRepeatedStep ? "repeated" : null)"
-                                cx="@Coordinate(markerStep.Cell.Column)" cy="@Coordinate(markerStep.Cell.Row)" r="0.16" />
+                        var points = GetBeamPoints(_beams[beamIndex]);
+
+                        <g class="beam-history beam-color" data-beam="@beamIndex">
+                            <polyline class="beam-halo" points="@points" />
+                            <polyline class="beam-line" points="@points" />
+                        </g>
+                    }
+                    @if (ActiveStep is { } step)
+                    {
+                        <g class="beam-color" data-beam="@_beamIndex">
+                            <polyline class="beam-line" points="@GetBeamPoints(SelectedBeam, _stepIndex!.Value + 1)" />
+                            <circle class="step-marker @(IsRepeatedStep ? "repeated" : null)"
+                                    cx="@SvgNumber(step.Point.X)" cy="@SvgNumber(step.Point.Y)" r="0.16" />
+                        </g>
                     }
                 </svg>
             </div>
         </section>
 
         <aside class="game-controls" aria-label="Puzzle controls">
-            <div class="beam-status" data-outcome="@_trace.Outcome" role="status" aria-atomic="true">
+            <div class="beam-status" data-outcome="@BoardOutcome" role="status" aria-atomic="true">
                 <span class="status-light" aria-hidden="true"></span>
                 <div>
                     <h2>@StatusHeading</h2>
-                    <p>@StatusDescription</p>
+                    @if (!HasMultipleBeams)
+                    {
+                        <p>@DescribeOutcome(SelectedBeam)</p>
+                    }
+                    else
+                    {
+                        <ul class="beam-results">
+                            @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
+                            {
+                                <li data-beam="@beamIndex">
+                                    <strong>Beam @(beamIndex + 1)</strong>
+                                    <span>@OutcomeText(_beams[beamIndex].Outcome)</span>
+                                </li>
+                            }
+                        </ul>
+                    }
                 </div>
             </div>
 
-            <dl class="board-key">
-                <div>
-                    <dt><span class="key-icon"><span class="source-symbol"></span></span> Source</dt>
-                    <dd>Row @PuzzleLevel.Source.Row, column @PuzzleLevel.Source.Column · east</dd>
-                </div>
-                <div>
-                    <dt><span class="key-icon"><span class="target-symbol"></span></span> Target</dt>
-                    <dd>Row @PuzzleLevel.Target.Row, column @PuzzleLevel.Target.Column</dd>
-                </div>
+            <dl class="board-key" data-beam-count="@_beams.Length">
+                @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
+                {
+                    var beam = _beams[beamIndex];
+                    <div>
+                        <dt><span class="key-icon" aria-hidden="true"><span class="source-symbol" data-beam="@beamIndex" style="@LaunchStyle(beam)"></span></span> @EndpointLabel("Source", beamIndex)</dt>
+                        <dd>Row @beam.Source.Row, column @beam.Source.Column · @beam.LaunchHeading</dd>
+                    </div>
+                    <div>
+                        <dt><span class="key-icon" aria-hidden="true"><span class="target-symbol" data-beam="@beamIndex"></span></span> @EndpointLabel("Target", beamIndex)</dt>
+                        <dd>Row @beam.Target.Row, column @beam.Target.Column</dd>
+                    </div>
+                }
             </dl>
 
             <div class="replay-controls">
+                @if (HasMultipleBeams)
+                {
+                    <label class="game-picker">
+                        Beam to step
+                        <select value="@_beamIndex" @onchange="PickBeam">
+                            @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
+                            {
+                                <option value="@beamIndex">Beam @(beamIndex + 1)</option>
+                            }
+                        </select>
+                    </label>
+                }
                 <button class="step-beam" type="button" @onclick="StepBeam">@(IsLastStep ? "Replay beam" : "Step beam")</button>
                 <div class="step-status" role="status" aria-label="Beam step" aria-atomic="true">
-                    @if (ActiveStep is { } step)
+                    @if (ActiveStep is { } stepInfo)
                     {
-                        <strong>Step @(_stepIndex!.Value + 1) of @_trace.Path.Count</strong>
-                        <span>Row @step.Cell.Row, column @step.Cell.Column · incoming @DirectionText(step.Direction)</span>
+                        <strong>Step @(_stepIndex!.Value + 1) of @SelectedBeam.Path.Length</strong>
+                        <span>Row @stepInfo.Cell.Row, column @stepInfo.Cell.Column · incoming @stepInfo.IncomingHeading</span>
                         @if (IsRepeatedStep)
                         {
                             <span class="repeat-status">Repeated state · loop detected</span>
@@ -117,37 +178,65 @@
             </div>
 
             <button class="reset" type="button" @onclick="Reset">Reset mirrors</button>
+            @if (BoardOutcome == BeamOutcome.TargetHit && _levelIndex + 1 < GridLevels.All.Count)
+            {
+                <button class="next-level" type="button" @onclick="() => LoadLevel(_levelIndex + 1)">Next level</button>
+            }
         </aside>
     </div>
 </div>
 
 @code {
-    private Mirror[] _mirrors = PuzzleLevel.StartingMirrors.ToArray();
-    private BeamTrace _trace = BeamTracer.Trace(PuzzleLevel.StartingMirrors);
+    private int _levelIndex;
+    private int _beamIndex;
+    private Mirror[] _mirrors = [];
+    private DisplayBeam[] _beams = [];
     private int? _stepIndex;
 
-    private BeamState? ActiveStep => _stepIndex is { } index ? _trace.Path[index] : null;
-    private bool IsLastStep => _stepIndex == _trace.Path.Count - 1;
-    private bool IsRepeatedStep => IsLastStep && _trace.Outcome == BeamOutcome.Looped;
+    private GridLevel Level => GridLevels.All[_levelIndex];
+    private int BoardSize => Level.Size;
+    private bool HasMultipleBeams => _beams.Length > 1;
+    private DisplayBeam SelectedBeam => _beams[_beamIndex];
+    private DisplayStep? ActiveStep => _stepIndex is { } index ? SelectedBeam.Path[index] : null;
+    private bool IsLastStep => _stepIndex == SelectedBeam.Path.Length - 1;
+    private bool IsRepeatedStep => IsLastStep && SelectedBeam.Outcome == BeamOutcome.Looped;
+    private int TargetCount => _beams.Count(beam => beam.Outcome == BeamOutcome.TargetHit);
 
-    private string StatusHeading => _trace.Outcome switch
-    {
-        BeamOutcome.TargetHit => "Target hit!",
-        BeamOutcome.Looped => "Beam looped",
-        _ => "Beam exited"
-    };
+    private BeamOutcome BoardOutcome => TargetCount == _beams.Length
+        ? BeamOutcome.TargetHit
+        : _beams.Any(beam => beam.Outcome == BeamOutcome.Looped) ? BeamOutcome.Looped : BeamOutcome.Exited;
 
-    private string StatusDescription
-    {
-        get
+    private string StatusHeading => HasMultipleBeams
+        ? BoardOutcome == BeamOutcome.TargetHit ? "All targets hit!" : $"{TargetCount} of {_beams.Length} targets hit"
+        : BoardOutcome switch
         {
-            var last = _trace.Path[^1];
-            return _trace.Outcome switch
-            {
-                BeamOutcome.TargetHit => "The beam reached the target through all five mirrors.",
-                BeamOutcome.Looped => $"It returned to row {last.Cell.Row}, column {last.Cell.Column}, heading {DirectionText(last.Direction)}.",
-                _ => $"It left the board heading {DirectionText(_trace.ExitDirection!.Value)} from row {last.Cell.Row}, column {last.Cell.Column}."
-            };
+            BeamOutcome.TargetHit => "Target hit!",
+            BeamOutcome.Looped => "Beam looped",
+            _ => "Beam exited"
+        };
+
+    protected override void OnInitialized() => Reset();
+
+    private void PickLevel(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var index) && index >= 0 && index < GridLevels.All.Count)
+        {
+            LoadLevel(index);
+        }
+    }
+
+    private void LoadLevel(int index)
+    {
+        _levelIndex = index;
+        Reset();
+    }
+
+    private void PickBeam(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var index) && index >= 0 && index < _beams.Length)
+        {
+            _beamIndex = index;
+            _stepIndex = null;
         }
     }
 
@@ -158,48 +247,100 @@
             ? MirrorOrientation.Backslash
             : MirrorOrientation.Slash;
         _mirrors[index] = mirror with { Orientation = orientation };
-        UpdateTrace();
+        UpdateTraces();
     }
 
     private void Reset()
     {
-        _mirrors = PuzzleLevel.StartingMirrors.ToArray();
-        UpdateTrace();
+        _mirrors = Level.StartingMirrors.ToArray();
+        _beamIndex = 0;
+        UpdateTraces();
     }
 
-    private void UpdateTrace()
+    private void UpdateTraces()
     {
-        _trace = BeamTracer.Trace(_mirrors);
+        _beams = Level.Beams.Select(TraceBeam).ToArray();
         _stepIndex = null;
     }
 
-    private void StepBeam() => _stepIndex = IsLastStep ? 0 : (_stepIndex ?? -1) + 1;
-
-    private string GetBeamPoints(int? stepCount = null)
+    private DisplayBeam TraceBeam(BeamRoute route)
     {
-        var points = _trace.Path.Take(stepCount ?? _trace.Path.Count).Select(state => ToPoint(state.Cell));
+        var trace = BeamTracer.Trace(BoardSize, route.Source, route.Direction, route.Target, _mirrors);
+        var steps = trace.Path.Select(state => new DisplayStep(
+            state.Cell, DirectionText(state.Direction), CenterOf(state.Cell))).ToArray();
+        BoardPoint? exit = null;
+        string? exitHeading = null;
 
-        if ((stepCount is null || IsLastStep) && _trace.ExitDirection is { } exitDirection)
+        if (trace.ExitDirection is { } direction)
         {
-            var (dx, dy) = exitDirection switch
+            var (dx, dy) = direction switch
             {
                 Direction.North => (0d, -0.5),
                 Direction.East => (0.5, 0d),
                 Direction.South => (0d, 0.5),
                 Direction.West => (-0.5, 0d),
-                _ => throw new ArgumentOutOfRangeException(nameof(exitDirection))
+                _ => throw new ArgumentOutOfRangeException(nameof(direction))
             };
-
-            points = points.Append(ToPoint(_trace.Path[^1].Cell, dx, dy));
+            var last = steps[^1].Point;
+            exit = new BoardPoint(last.X + dx, last.Y + dy);
+            exitHeading = DirectionText(direction);
         }
 
-        return string.Join(" ", points);
+        return new DisplayBeam(route.Source, route.Target, DirectionText(route.Direction), DirectionAngle(route.Direction),
+            trace.Outcome, steps, exit, exitHeading);
     }
 
-    private static string ToPoint(Cell cell, double dx = 0, double dy = 0) =>
-        FormattableString.Invariant($"{cell.Column - 0.5 + dx},{cell.Row - 0.5 + dy}");
+    private void StepBeam() => _stepIndex = IsLastStep ? 0 : (_stepIndex ?? -1) + 1;
 
-    private static string Coordinate(int coordinate) => FormattableString.Invariant($"{coordinate - 0.5}");
+    private static string GetBeamPoints(DisplayBeam beam, int? stepCount = null)
+    {
+        var points = beam.Path.Take(stepCount ?? beam.Path.Length).Select(step => step.Point);
 
+        if ((stepCount is null || stepCount == beam.Path.Length) && beam.ExitPoint is { } exit)
+        {
+            points = points.Append(exit);
+        }
+
+        return string.Join(" ", points.Select(point => FormattableString.Invariant($"{point.X},{point.Y}")));
+    }
+
+    private static string DescribeOutcome(DisplayBeam beam)
+    {
+        var last = beam.Path[^1];
+        return beam.Outcome switch
+        {
+            BeamOutcome.TargetHit => $"It reached row {last.Cell.Row}, column {last.Cell.Column}.",
+            BeamOutcome.Looped => $"It returned to row {last.Cell.Row}, column {last.Cell.Column}, heading {last.IncomingHeading}.",
+            _ => $"It left the board heading {beam.ExitHeading} from row {last.Cell.Row}, column {last.Cell.Column}."
+        };
+    }
+
+    private static string OutcomeText(BeamOutcome outcome) => outcome switch
+    {
+        BeamOutcome.TargetHit => "Target hit",
+        BeamOutcome.Looped => "Looped",
+        _ => "Exited"
+    };
+
+    private string EndpointLabel(string label, int beamIndex) => HasMultipleBeams ? $"{label} {beamIndex + 1}" : label;
+
+    private static string LaunchStyle(DisplayBeam beam) => FormattableString.Invariant($"--launch-angle:{beam.LaunchAngle}deg");
+
+    private static BoardPoint CenterOf(Cell cell) => new(cell.Column - 0.5, cell.Row - 0.5);
+    private static string SvgNumber(double value) => FormattableString.Invariant($"{value}");
     private static string DirectionText(Direction direction) => direction.ToString().ToLowerInvariant();
+
+    private static double DirectionAngle(Direction direction) => direction switch
+    {
+        Direction.North => 270,
+        Direction.East => 0,
+        Direction.South => 90,
+        Direction.West => 180,
+        _ => throw new ArgumentOutOfRangeException(nameof(direction))
+    };
+
+    private sealed record DisplayBeam(Cell Source, Cell Target, string LaunchHeading, double LaunchAngle,
+        BeamOutcome Outcome, DisplayStep[] Path, BoardPoint? ExitPoint, string? ExitHeading);
+    private readonly record struct DisplayStep(Cell Cell, string IncomingHeading, BoardPoint Point);
+    private readonly record struct BoardPoint(double X, double Y);
 }
