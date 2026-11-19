@@ -147,6 +147,11 @@
     background: linear-gradient(145deg, #2b4963, #1c354b);
 }
 
+.mirror[data-selected="true"] .mirror-plate {
+    border-color: var(--cyan);
+    box-shadow: 0 0.22rem 0.5rem #0005, 0 0 0.45rem #64e9ff33;
+}
+
 .mirror:focus-visible {
     z-index: 1;
     outline: 2px solid var(--cyan);
@@ -436,6 +441,7 @@
 .step-beam,
 .reset,
 .next-level,
+.mirror-action,
 .game-picker select {
     min-height: 2.75rem;
     padding: 0.55rem 0.85rem;
@@ -446,6 +452,37 @@
     font: inherit;
     font-weight: 650;
     cursor: pointer;
+}
+
+.mirror-controls {
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--rim);
+    border-radius: 0.9rem;
+    background: var(--surface);
+}
+
+.mirror-controls legend {
+    padding-inline: 0.3rem;
+    font-size: 0.875rem;
+    font-weight: 650;
+}
+
+.mirror-fields,
+.mirror-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.mirror-actions {
+    margin-block-start: 0.65rem;
+}
+
+.mirror-action {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.875rem;
 }
 
 .replay-controls {
@@ -499,6 +536,7 @@
 }
 
 .reset:hover,
+.mirror-action:hover,
 .game-picker select:hover {
     border-color: #7ab3cf;
     background: #23415a;
@@ -507,6 +545,7 @@
 .step-beam:focus-visible,
 .reset:focus-visible,
 .next-level:focus-visible,
+.mirror-action:focus-visible,
 .game-picker select:focus-visible {
     outline: 2px solid var(--cyan);
     outline-offset: 3px;

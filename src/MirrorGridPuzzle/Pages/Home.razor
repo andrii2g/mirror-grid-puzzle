@@ -10,7 +10,7 @@
             <p>Rotate the mirrors to guide each beam to its target.</p>
             @if (IsOptics)
             {
-                <p>Angles are measured clockwise from east. Hold Shift to cycle backward.</p>
+                <p>Angles are measured clockwise from east.</p>
             }
             @if (IsSenior)
             {
@@ -77,6 +77,7 @@
                             var label = $"Mirror {letter}, row {row}, column {column}, {orientation}";
 
                             <button class="cell mirror" type="button" aria-label="@label"
+                                    data-selected="@(IsOptics && mirrorIndex == _angleMirrorIndex ? "true" : null)"
                                     @onclick="args => Rotate(mirrorIndex, args.ShiftKey)">
                                 <span class="mirror-plate" aria-hidden="true">
                                     <span class="mirror-letter">@letter</span>
@@ -165,6 +166,37 @@
                 </div>
             </div>
 
+            @if (IsOptics)
+            {
+                <fieldset class="mirror-controls">
+                    <legend>Mirror rotation</legend>
+                    <div class="mirror-fields">
+                        <div class="game-picker">
+                            <label for="mirror-picker">Mirror</label>
+                            <select id="mirror-picker" value="@_angleMirrorIndex" @onchange="PickMirror">
+                                @for (var mirrorIndex = 0; mirrorIndex < _angledMirrors.Length; mirrorIndex++)
+                                {
+                                    <option value="@mirrorIndex">Mirror @((char)('A' + mirrorIndex))</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="game-picker">
+                            <label for="angle-picker">Angle</label>
+                            <select id="angle-picker" value="@SelectedAngleMirror.Angle" @onchange="PickAngle">
+                                @foreach (var angle in CurrentOpticalBoard.AllowedAngles)
+                                {
+                                    <option value="@angle">@AngleText(angle)</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mirror-actions">
+                        <button class="mirror-action" type="button" @onclick="() => Rotate(_angleMirrorIndex, backward: true)">Previous angle</button>
+                        <button class="mirror-action" type="button" @onclick="() => Rotate(_angleMirrorIndex, backward: false)">Next angle</button>
+                    </div>
+                </fieldset>
+            }
+
             <div class="replay-controls">
                 @if (HasMultipleBeams)
                 {
@@ -221,6 +253,7 @@
 
     private int _levelIndex;
     private int _beamIndex;
+    private int _angleMirrorIndex;
     private Mirror[] _mirrors = [];
     private AngledMirror[] _angledMirrors = [];
     private DisplayBeam[] _beams = [];
@@ -240,6 +273,7 @@
         ? FormattableString.Invariant($"--board-size:{BoardSize};--mirror-span:{200 * OpticsLevel.MirrorHalfLength}%;--target-span:{200 * OpticsLevel.TargetRadius}%")
         : $"--board-size:{BoardSize}";
     private bool HasMultipleBeams => _beams.Length > 1;
+    private AngledMirror SelectedAngleMirror => _angledMirrors[_angleMirrorIndex];
     private DisplayBeam SelectedBeam => _beams[_beamIndex];
     private DisplayStep? ActiveStep => _stepIndex is { } index ? SelectedBeam.Path[index] : null;
     private bool IsLastStep => _stepIndex == SelectedBeam.Path.Length - 1;
@@ -308,6 +342,22 @@
         }
     }
 
+    private void PickMirror(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var index) && index >= 0 && index < _angledMirrors.Length)
+        {
+            _angleMirrorIndex = index;
+        }
+    }
+
+    private void PickAngle(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var angle) && CurrentOpticalBoard.AllowedAngles.Contains(angle))
+        {
+            SetAngle(angle);
+        }
+    }
+
     private int FindMirror(Cell cell) => IsOptics
         ? Array.FindIndex(_angledMirrors, mirror => mirror.Cell == cell)
         : Array.FindIndex(_mirrors, mirror => mirror.Cell == cell);
@@ -320,21 +370,30 @@
     {
         if (IsOptics)
         {
-            var mirror = _angledMirrors[index];
+            _angleMirrorIndex = index;
             var angles = CurrentOpticalBoard.AllowedAngles;
-            var current = Enumerable.Range(0, angles.Count).First(position => angles[position] == mirror.Angle);
+            var current = Enumerable.Range(0, angles.Count).First(position => angles[position] == SelectedAngleMirror.Angle);
             var next = (current + (backward ? -1 : 1) + angles.Count) % angles.Count;
-            _angledMirrors[index] = mirror with { Angle = angles[next] };
+            SetAngle(angles[next]);
+            return;
         }
-        else
-        {
-            var mirror = _mirrors[index];
-            var orientation = mirror.Orientation == MirrorOrientation.Slash
-                ? MirrorOrientation.Backslash
-                : MirrorOrientation.Slash;
-            _mirrors[index] = mirror with { Orientation = orientation };
-        }
+
+        var mirror = _mirrors[index];
+        var orientation = mirror.Orientation == MirrorOrientation.Slash
+            ? MirrorOrientation.Backslash
+            : MirrorOrientation.Slash;
+        _mirrors[index] = mirror with { Orientation = orientation };
         UpdateTraces();
+    }
+
+    private void SetAngle(int angle)
+    {
+        var mirror = SelectedAngleMirror;
+        if (mirror.Angle != angle)
+        {
+            _angledMirrors[_angleMirrorIndex] = mirror with { Angle = angle };
+            UpdateTraces();
+        }
     }
 
     private void Reset()
@@ -342,6 +401,7 @@
         if (IsOptics)
         {
             _angledMirrors = CurrentOpticalBoard.StartingMirrors.ToArray();
+            _angleMirrorIndex = 0;
         }
         else
         {
