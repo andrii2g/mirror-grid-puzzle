@@ -14,6 +14,8 @@ Choose **Beginner**, **Middle**, or **Senior** in the **Experience** selector to
 
 Click a mirror or focus it and press Enter or Space to rotate it. Each rotation redraws every beam immediately. **Reset mirrors** restores the current board. On boards with several beams, guide each beam to the target with the matching number.
 
+On Middle and Senior boards, use **Mirror rotation** to select a mirror. Choose **Previous angle** or **Next angle** to cycle in either direction, or use **Angle** to jump to an available value. Activating a mirror on the board selects it and advances its angle. Hold Shift while activating it to cycle backward.
+
 | Experience | Level | Board | Beams | Goal |
 | --- | --- | --- | ---: | --- |
 | Beginner | First Light | 4×4 | 1 | Learn to turn a beam with one mirror |
@@ -30,7 +32,7 @@ Select **Step beam** to advance through the trace and inspect the current row, c
 
 In the first three levels, beams move between adjacent cells. A `/` mirror exchanges north with east and south with west. A `\` mirror exchanges north with west and south with east. The tracer stops at the beam’s target, the board edge, or a repeat of the same cell and incoming direction. The source lets the beam pass through on a return trip. For a board of side length `n`, there are at most `4 × n²` cardinal states.
 
-In the Middle and Senior tracks, beams reflect from finite mirror segments and can travel between the grid axes. Each activation advances to the next available angle for the level. Hold Shift while activating a mirror to cycle backward. Angles increase clockwise from east. A geometric loop repeats a mirror hit at the same point with the same incoming angle, within numerical tolerance. The tracer also has a separate limit of 256 reflections. [OpenStax, The Law of Reflection](https://openstax.org/books/university-physics-volume-3/pages/1-2-the-law-of-reflection)
+In the Middle and Senior tracks, beams reflect from finite mirror segments and can travel between the grid axes. Angles increase clockwise from east. A geometric loop repeats a mirror hit at the same point with the same incoming angle, within numerical tolerance. The tracer also has a separate limit of 256 reflections. [OpenStax, The Law of Reflection](https://openstax.org/books/university-physics-volume-3/pages/1-2-the-law-of-reflection)
 
 ## Run the tests
 
