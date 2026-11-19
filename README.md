@@ -16,6 +16,8 @@ Click a mirror or focus it and press Enter or Space to rotate it. Each rotation 
 
 On Middle and Senior boards, use **Mirror rotation** to select a mirror. Choose **Previous angle** or **Next angle** to cycle in either direction, or use **Angle** to jump to an available value. Activating a mirror on the board selects it and advances its angle. Hold Shift while activating it to cycle backward.
 
+Use **Undo** and **Redo** to revisit mirror rotations, including changes made with the angle picker. A new rotation after an undo clears the redo history. Resetting the board or changing levels clears both histories.
+
 | Experience | Level | Board | Beams | Goal |
 | --- | --- | --- | ---: | --- |
 | Beginner | First Light | 4×4 | 1 | Learn to turn a beam with one mirror |
@@ -26,9 +28,19 @@ On Middle and Senior boards, use **Mirror rotation** to select a mirror. Choose 
 
 Shared Focus randomly selects a named preset when you enter the level. Each preset has three beams at 5°, 30°, and 65°. **Reset mirrors** restores the starting angles for the preset you are playing. Leaving and re-entering the level makes a new draw.
 
+## Screenshots
+
+**Closed Circuit** shows a beam loop on the 6×6 board.
+
+![Closed Circuit with an amber beam loop, numbered grid, and rotation history controls](docs/images/closed-circuit.png)
+
+**Shared Focus** shows three beams and the angle controls on the 10×10 board.
+
+![Shared Focus with three colored beam paths, mirror angle controls, and Undo and Redo](docs/images/shared-focus.png)
+
 ## Step through the beam
 
-Select **Step beam** to advance through the trace and inspect the current row, column, and incoming direction. On boards with several beams, use **Beam to step** to choose one. When the beam loops, the replay highlights the repeated state. Rotating a mirror or resetting the board ends the replay and redraws the full paths.
+Select **Step beam** to advance through the trace and inspect the current row, column, and incoming direction. On boards with several beams, use **Beam to step** to choose one. When the beam loops, the replay highlights the repeated state. Any mirror change or board reset ends the replay and redraws the full paths.
 
 In the first three levels, beams move between adjacent cells. A `/` mirror exchanges north with east and south with west. A `\` mirror exchanges north with west and south with east. The tracer stops at the beam’s target, the board edge, or a repeat of the same cell and incoming direction. The source lets the beam pass through on a return trip. For a board of side length `n`, there are at most `4 × n²` cardinal states.
 
