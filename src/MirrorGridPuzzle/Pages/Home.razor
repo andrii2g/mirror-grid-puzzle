@@ -13,16 +13,31 @@
                 <p>Angles are measured clockwise from east. Hold Shift to cycle backward.</p>
             }
         </div>
-        <div class="game-picker">
-            <label for="level-picker">Level</label>
-            <select id="level-picker" value="@_levelIndex" @onchange="PickLevel">
-                @for (var levelIndex = 0; levelIndex < GridLevels.All.Count; levelIndex++)
-                {
-                    var level = GridLevels.All[levelIndex];
-                    <option value="@levelIndex">@(levelIndex + 1). @level.Name (@level.Size×@level.Size)</option>
-                }
-                <option value="@OpticsIndex">@LevelCount. @OpticsLevel.Name (@OpticsLevel.Size×@OpticsLevel.Size)</option>
-            </select>
+        <div class="game-pickers">
+            <div class="game-picker">
+                <label for="experience-picker">Experience</label>
+                <select id="experience-picker" value="@ExperienceStart" @onchange="PickLevel">
+                    <option value="0">Beginner</option>
+                    <option value="@FirstOpticalIndex">Middle</option>
+                    <option value="@(FirstOpticalIndex + 1)">Senior</option>
+                </select>
+            </div>
+            <div class="game-picker">
+                <label for="level-picker">Level</label>
+                <select id="level-picker" value="@_levelIndex" @onchange="PickLevel">
+                    @for (var levelIndex = 0; levelIndex < FirstOpticalIndex; levelIndex++)
+                    {
+                        var level = GridLevels.All[levelIndex];
+                        <option value="@levelIndex">@(levelIndex + 1). @level.Name (@level.Size×@level.Size)</option>
+                    }
+                    @for (var opticalIndex = 0; opticalIndex < OpticalBoards.Length; opticalIndex++)
+                    {
+                        var index = FirstOpticalIndex + opticalIndex;
+                        var board = OpticalBoards[opticalIndex];
+                        <option value="@index">@(index + 1). @board.Name (@board.Size×@board.Size)</option>
+                    }
+                </select>
+            </div>
         </div>
     </header>
 
@@ -145,21 +160,6 @@
                 </div>
             </div>
 
-            <dl class="board-key" data-beam-count="@_beams.Length">
-                @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
-                {
-                    var beam = _beams[beamIndex];
-                    <div>
-                        <dt><span class="key-icon" aria-hidden="true"><span class="source-symbol" data-beam="@beamIndex" style="@LaunchStyle(beam)"></span></span> @EndpointLabel("Source", beamIndex)</dt>
-                        <dd>Row @beam.Source.Row, column @beam.Source.Column · @beam.LaunchHeading</dd>
-                    </div>
-                    <div>
-                        <dt><span class="key-icon" aria-hidden="true"><span class="target-symbol" data-beam="@beamIndex"></span></span> @EndpointLabel("Target", beamIndex)</dt>
-                        <dd>Row @beam.Target.Row, column @beam.Target.Column</dd>
-                    </div>
-                }
-            </dl>
-
             <div class="replay-controls">
                 @if (HasMultipleBeams)
                 {
@@ -192,12 +192,27 @@
             {
                 <button class="next-level" type="button" @onclick="() => LoadLevel(_levelIndex + 1)">Next level</button>
             }
+
+            <dl class="board-key" data-beam-count="@_beams.Length">
+                @for (var beamIndex = 0; beamIndex < _beams.Length; beamIndex++)
+                {
+                    var beam = _beams[beamIndex];
+                    <div>
+                        <dt><span class="key-icon" aria-hidden="true"><span class="source-symbol" data-beam="@beamIndex" style="@LaunchStyle(beam)"></span></span> @EndpointLabel("Source", beamIndex)</dt>
+                        <dd>Row @beam.Source.Row, column @beam.Source.Column · @beam.LaunchHeading</dd>
+                    </div>
+                    <div>
+                        <dt><span class="key-icon" aria-hidden="true"><span class="target-symbol" data-beam="@beamIndex"></span></span> @EndpointLabel("Target", beamIndex)</dt>
+                        <dd>Row @beam.Target.Row, column @beam.Target.Column</dd>
+                    </div>
+                }
+            </dl>
         </aside>
     </div>
 </div>
 
 @code {
-    private static readonly int[] OpticalAngles = OpticsLevel.AllowedAngles.ToArray();
+    private static readonly OpticalBoard[] OpticalBoards = [MiddleBoard.Definition, SeniorBoard.Definition];
 
     private int _levelIndex;
     private int _beamIndex;
@@ -206,11 +221,13 @@
     private DisplayBeam[] _beams = [];
     private int? _stepIndex;
 
-    private static int OpticsIndex => GridLevels.All.Count;
-    private static int LevelCount => OpticsIndex + 1;
-    private bool IsOptics => _levelIndex == OpticsIndex;
-    private GridLevel Level => GridLevels.All[_levelIndex];
-    private int BoardSize => IsOptics ? OpticsLevel.Size : Level.Size;
+    private static int FirstOpticalIndex => GridLevels.All.Count;
+    private static int LevelCount => FirstOpticalIndex + OpticalBoards.Length;
+    private bool IsOptics => _levelIndex >= FirstOpticalIndex;
+    private int ExperienceStart => IsOptics ? _levelIndex : 0;
+    private GridLevel CurrentGridLevel => GridLevels.All[_levelIndex];
+    private OpticalBoard CurrentOpticalBoard => OpticalBoards[_levelIndex - FirstOpticalIndex];
+    private int BoardSize => IsOptics ? CurrentOpticalBoard.Size : CurrentGridLevel.Size;
     private string BoardStyle => IsOptics
         ? FormattableString.Invariant($"--board-size:{BoardSize};--mirror-span:{200 * OpticsLevel.MirrorHalfLength}%;--target-span:{200 * OpticsLevel.TargetRadius}%")
         : $"--board-size:{BoardSize}";
@@ -221,11 +238,27 @@
     private bool IsRepeatedStep => IsLastStep && SelectedBeam.Outcome == BeamOutcome.Looped;
     private int TargetCount => _beams.Count(beam => beam.Outcome == BeamOutcome.TargetHit);
 
-    private BeamOutcome BoardOutcome => _beams.Length == 1
-        ? SelectedBeam.Outcome
-        : TargetCount == _beams.Length
-            ? BeamOutcome.TargetHit
-            : _beams.Any(beam => beam.Outcome == BeamOutcome.Looped) ? BeamOutcome.Looped : BeamOutcome.Exited;
+    private BeamOutcome BoardOutcome
+    {
+        get
+        {
+            if (!HasMultipleBeams)
+            {
+                return SelectedBeam.Outcome;
+            }
+            if (TargetCount == _beams.Length)
+            {
+                return BeamOutcome.TargetHit;
+            }
+            if (_beams.Any(beam => beam.Outcome == BeamOutcome.Looped))
+            {
+                return BeamOutcome.Looped;
+            }
+            return _beams.Any(beam => beam.Outcome == BeamOutcome.TraceLimit)
+                ? BeamOutcome.TraceLimit
+                : BeamOutcome.Exited;
+        }
+    }
 
     private string StatusHeading => HasMultipleBeams
         ? BoardOutcome == BeamOutcome.TargetHit ? "All targets hit!" : $"{TargetCount} of {_beams.Length} targets hit"
@@ -275,9 +308,10 @@
         if (IsOptics)
         {
             var mirror = _angledMirrors[index];
-            var current = Array.IndexOf(OpticalAngles, mirror.Angle);
-            var next = (current + (backward ? -1 : 1) + OpticalAngles.Length) % OpticalAngles.Length;
-            _angledMirrors[index] = mirror with { Angle = OpticalAngles[next] };
+            var angles = CurrentOpticalBoard.AllowedAngles;
+            var current = Enumerable.Range(0, angles.Count).First(position => angles[position] == mirror.Angle);
+            var next = (current + (backward ? -1 : 1) + angles.Count) % angles.Count;
+            _angledMirrors[index] = mirror with { Angle = angles[next] };
         }
         else
         {
@@ -294,11 +328,11 @@
     {
         if (IsOptics)
         {
-            _angledMirrors = OpticsLevel.StartingMirrors.ToArray();
+            _angledMirrors = CurrentOpticalBoard.StartingMirrors.ToArray();
         }
         else
         {
-            _mirrors = Level.StartingMirrors.ToArray();
+            _mirrors = CurrentGridLevel.StartingMirrors.ToArray();
         }
         _beamIndex = 0;
         UpdateTraces();
@@ -306,7 +340,9 @@
 
     private void UpdateTraces()
     {
-        _beams = IsOptics ? [TraceOpticalBeam()] : Level.Beams.Select(TraceBeam).ToArray();
+        _beams = IsOptics
+            ? CurrentOpticalBoard.Beams.Select(TraceOpticalBeam).ToArray()
+            : CurrentGridLevel.Beams.Select(TraceBeam).ToArray();
         _stepIndex = null;
     }
 
@@ -337,15 +373,15 @@
             trace.Outcome, steps, exit, exitHeading);
     }
 
-    private DisplayBeam TraceOpticalBeam()
+    private DisplayBeam TraceOpticalBeam(OpticalBeamRoute route)
     {
-        var trace = OpticalTracer.Trace(_angledMirrors);
+        var trace = OpticalTracer.Trace(CurrentOpticalBoard, route, _angledMirrors);
         var steps = trace.Path.Select(step => new DisplayStep(step.Cell, AngleText(step.IncomingAngle),
             new BoardPoint(step.Point.X, step.Point.Y))).ToArray();
         var exitHeading = trace.Outcome == BeamOutcome.Exited ? steps[^1].IncomingHeading : null;
 
-        return new DisplayBeam(OpticsLevel.Source, OpticsLevel.Target, AngleText(OpticsLevel.LaunchAngle),
-            OpticsLevel.LaunchAngle, trace.Outcome, steps, null, exitHeading);
+        return new DisplayBeam(route.Source, route.Target, AngleText(route.LaunchAngle),
+            route.LaunchAngle, trace.Outcome, steps, null, exitHeading);
     }
 
     private void StepBeam() => _stepIndex = IsLastStep ? 0 : (_stepIndex ?? -1) + 1;
@@ -378,6 +414,7 @@
     {
         BeamOutcome.TargetHit => "Target hit",
         BeamOutcome.Looped => "Looped",
+        BeamOutcome.TraceLimit => "Trace limit reached",
         _ => "Exited"
     };
 

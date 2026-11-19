@@ -5,6 +5,7 @@
     --surface: #101e2d;
     --cyan: #64e9ff;
     --beam-two: #eda8ff;
+    --beam-three: #ffc064;
     --amber: #ffcf83;
     --green: #85f2b8;
 
@@ -103,7 +104,9 @@
 }
 
 .board[data-outcome="Looped"],
-.beam-status[data-outcome="Looped"] {
+.beam-status[data-outcome="Looped"],
+.board[data-outcome="TraceLimit"],
+.beam-status[data-outcome="TraceLimit"] {
     --beam: var(--amber);
 }
 
@@ -186,8 +189,20 @@
     font: 500 0.75rem ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
+[data-beam="0"] {
+    --channel-color: var(--cyan);
+}
+
+[data-beam="1"] {
+    --channel-color: var(--beam-two);
+}
+
+[data-beam="2"] {
+    --channel-color: var(--beam-three);
+}
+
 .source-symbol {
-    --marker-color: var(--cyan);
+    --marker-color: var(--channel-color);
 
     position: relative;
     display: grid;
@@ -234,14 +249,9 @@
     width: var(--target-span);
 }
 
-.board[data-beam-count="2"] .target-symbol[data-beam="0"],
-.board-key[data-beam-count="2"] .target-symbol[data-beam="0"] {
-    --marker-color: var(--cyan);
-}
-
-.source-symbol[data-beam="1"],
-.target-symbol[data-beam="1"] {
-    --marker-color: var(--beam-two);
+.board:not([data-beam-count="1"]) .target-symbol,
+.board-key:not([data-beam-count="1"]) .target-symbol {
+    --marker-color: var(--channel-color);
 }
 
 .target-symbol[data-hit="true"] {
@@ -294,16 +304,16 @@
     stroke-width: 0.039;
 }
 
-.board[data-beam-count="2"] .beam-color[data-beam="0"] {
-    --beam: var(--cyan);
+.board:not([data-beam-count="1"]) .beam-color {
+    --beam: var(--channel-color);
 }
 
-.board[data-beam-count="2"] .beam-color[data-beam="1"] {
-    --beam: var(--beam-two);
-}
-
-.beam-history[data-beam="1"] .beam-line {
+.beam-color[data-beam="1"] .beam-line {
     stroke-dasharray: 0.11 0.07;
+}
+
+.beam-color[data-beam="2"] .beam-line {
+    stroke-dasharray: 0.01 0.09;
 }
 
 .beam-overlay.replaying .beam-history {
@@ -379,11 +389,7 @@
 }
 
 .beam-results strong {
-    color: var(--cyan);
-}
-
-.beam-results li[data-beam="1"] strong {
-    color: var(--beam-two);
+    color: var(--channel-color);
 }
 
 .board-key {
@@ -445,6 +451,11 @@
 .replay-controls {
     display: grid;
     gap: 0.65rem;
+}
+
+.game-pickers {
+    display: grid;
+    gap: 0.75rem;
 }
 
 .game-picker {
@@ -536,5 +547,17 @@
     .mirror-letter {
         right: 0.14rem;
         bottom: 0.06rem;
+    }
+
+    .board[data-beam-count="3"] .mirror-angle {
+        top: 0.04rem;
+        right: 0.08rem;
+        font-size: 0.625rem;
+    }
+
+    .board[data-beam-count="3"] .mirror-letter {
+        right: auto;
+        left: 0.08rem;
+        font-size: 0.625rem;
     }
 }
