@@ -1,6 +1,6 @@
 # mirror-grid-puzzle
 
-Guide beams to their targets across four boards. The game runs locally in the browser using standalone Blazor WebAssembly and .NET 10.
+Guide beams to their targets across five boards. The game runs locally in the browser using standalone Blazor WebAssembly and .NET 10.
 
 ## Play locally
 
@@ -10,22 +10,25 @@ With the .NET 10 SDK installed, run this command from the repository root and op
 dotnet run --project src/MirrorGridPuzzle
 ```
 
-Click a mirror or focus it and press Enter or Space to rotate it. Each rotation redraws the full beam immediately. **Reset mirrors** restores the current board. Use the level selector to try any board, or advance after reaching all its targets.
+Choose **Beginner**, **Middle**, or **Senior** in the **Experience** selector to start with one, two, or three beams. Use **Level** to open any board or advance after reaching all its targets.
 
-| Level | Board | Goal |
-| --- | --- | --- |
-| First Light | 4×4 | Learn to turn a beam with one mirror |
-| Crossed Beams | 5×5 | Route two beams through shared mirrors to their matching targets |
-| Closed Circuit | 6×6 | Guide a beam through five mirrors and watch for loops |
-| Off Axis | 7×7 | Reflect a beam at angles between the grid axes |
+Click a mirror or focus it and press Enter or Space to rotate it. Each rotation redraws every beam immediately. **Reset mirrors** restores the current board. On boards with several beams, guide each beam to the target with the matching number.
+
+| Experience | Level | Board | Beams | Goal |
+| --- | --- | --- | ---: | --- |
+| Beginner | First Light | 4×4 | 1 | Learn to turn a beam with one mirror |
+| Beginner | Crossed Beams | 5×5 | 2 | Route two beams through shared diagonal mirrors |
+| Beginner | Closed Circuit | 6×6 | 1 | Guide a beam through five mirrors and watch for loops |
+| Middle | Off Axis | 7×7 | 2 | Route two angled beams through shared mirrors |
+| Senior | Shared Focus | 10×10 | 3 | Adjust shared mirrors in 5° steps to route all three beams |
 
 ## Step through the beam
 
-Select **Step beam** to advance through the trace and inspect the current row, column, and incoming direction. On Crossed Beams, use **Beam to step** to choose a beam. When the beam loops, the replay highlights the repeated state. Rotating a mirror or resetting the board ends the replay and redraws the full path.
+Select **Step beam** to advance through the trace and inspect the current row, column, and incoming direction. On boards with several beams, use **Beam to step** to choose one. When the beam loops, the replay highlights the repeated state. Rotating a mirror or resetting the board ends the replay and redraws the full paths.
 
 In the first three levels, beams move between adjacent cells. A `/` mirror exchanges north with east and south with west. A `\` mirror exchanges north with west and south with east. The tracer stops at the beam’s target, the board edge, or a repeat of the same cell and incoming direction. The source lets the beam pass through on a return trip. For a board of side length `n`, there are at most `4 × n²` cardinal states.
 
-In Off Axis, beams reflect from finite mirror segments and can travel between the grid axes. Each activation advances to the next angle in the sequence `15°`, `30°`, `45°`, `60°`, `90°`, `105°`, `120°`, `135°`, `150°`, `165°`. Hold Shift while activating a mirror to cycle backward. Angles increase clockwise from east. A geometric loop repeats a mirror hit at the same point with the same incoming angle, within numerical tolerance. The tracer also has a separate limit of 256 reflections. [OpenStax, The Law of Reflection](https://openstax.org/books/university-physics-volume-3/pages/1-2-the-law-of-reflection)
+In the Middle and Senior tracks, beams reflect from finite mirror segments and can travel between the grid axes. Each activation advances to the next available angle for the level. Hold Shift while activating a mirror to cycle backward. Angles increase clockwise from east. A geometric loop repeats a mirror hit at the same point with the same incoming angle, within numerical tolerance. The tracer also has a separate limit of 256 reflections. [OpenStax, The Law of Reflection](https://openstax.org/books/university-physics-volume-3/pages/1-2-the-law-of-reflection)
 
 ## Run the tests
 
@@ -64,11 +67,23 @@ The source at `(2, 3)` fires east. The target is at `(4, 1)`. The original 32 mi
 
 ### Off Axis
 
-The source at `(4, 2)` fires east. The target is at `(1, 5)`.
+Beam 1 fires east from `(4, 2)` toward `(1, 5)`. Beam 2 fires at 45° from `(1, 2)` toward `(7, 6)`. Both beams use mirror B in the solution.
 
 | Configuration | A (4, 4) | B (6, 7) | C (7, 5) | Outcome |
 | --- | :-: | :-: | :-: | --- |
-| Starting board | 15° | 105° | 45° | Beam exits |
-| Winning angles | 15° | 90° | 30° | Beam reaches the target |
+| Starting board | 15° | 105° | 45° | Both beams exit |
+| Set B to 90° | 15° | 90° | 45° | Beam 2 reaches its target |
+| Then set C to 30° | 15° | 90° | 30° | Both beams reach their targets |
+
+### Shared Focus
+
+The three launch headings are fixed. Beam 1 starts at `(6, 4)` at 5° and aims for `(7, 6)`. Beam 2 starts at `(4, 3)` at 30° and aims for `(4, 9)`. Beam 3 starts at `(4, 4)` at 65° and aims for `(10, 8)`. The mirrors rotate in 5° steps from 25° through 65°.
+
+| Configuration | A (6, 7) | B (6, 5) | C (5, 5) | Outcome |
+| --- | :-: | :-: | :-: | --- |
+| Starting board | 30° | 35° | 55° | All three beams exit |
+| Set B to 30° | 30° | 30° | 55° | Beam 1 reaches its target |
+| Then set A to 35° | 35° | 30° | 55° | Beams 1 and 3 reach their targets |
+| Then set C to 60° | 35° | 30° | 60° | All three beams reach their targets |
 
 </details>
