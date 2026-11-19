@@ -20,7 +20,9 @@ Click a mirror or focus it and press Enter or Space to rotate it. Each rotation 
 | Beginner | Crossed Beams | 5×5 | 2 | Route two beams through shared diagonal mirrors |
 | Beginner | Closed Circuit | 6×6 | 1 | Guide a beam through five mirrors and watch for loops |
 | Middle | Off Axis | 7×7 | 2 | Route two angled beams through shared mirrors |
-| Senior | Shared Focus | 10×10 | 3 | Adjust shared mirrors in 5° steps to route all three beams |
+| Senior | Shared Focus | 10×10 | 3 | Adjust shared mirrors in 5° steps across three possible layouts |
+
+Shared Focus randomly selects a named preset when you enter the level. Each preset has three beams at 5°, 30°, and 65°. **Reset mirrors** restores the starting angles for the preset you are playing. Leaving and re-entering the level makes a new draw.
 
 ## Step through the beam
 
@@ -77,7 +79,11 @@ Beam 1 fires east from `(4, 2)` toward `(1, 5)`. Beam 2 fires at 45° from `(1, 
 
 ### Shared Focus
 
-The three launch headings are fixed. Beam 1 starts at `(6, 4)` at 5° and aims for `(7, 6)`. Beam 2 starts at `(4, 3)` at 30° and aims for `(4, 9)`. Beam 3 starts at `(4, 4)` at 65° and aims for `(10, 8)`. The mirrors rotate in 5° steps from 25° through 65°.
+The mirrors in all three presets rotate in 5° steps from 25° through 65°.
+
+#### Central Crossing
+
+Beam 1 starts at `(6, 4)` at 5° and aims for `(7, 6)`. Beam 2 starts at `(4, 3)` at 30° and aims for `(4, 9)`. Beam 3 starts at `(4, 4)` at 65° and aims for `(10, 8)`.
 
 | Configuration | A (6, 7) | B (6, 5) | C (5, 5) | Outcome |
 | --- | :-: | :-: | :-: | --- |
@@ -85,5 +91,14 @@ The three launch headings are fixed. Beam 1 starts at `(6, 4)` at 5° and aims f
 | Set B to 30° | 30° | 30° | 55° | Beam 1 reaches its target |
 | Then set A to 35° | 35° | 30° | 55° | Beams 1 and 3 reach their targets |
 | Then set C to 60° | 35° | 30° | 60° | All three beams reach their targets |
+
+#### Northern Relay and Far Corner
+
+Angles are listed in mirror order A, B, C. Each winning configuration reaches all three targets.
+
+| Preset | A | B | C | Starting angles | Winning angles |
+| --- | --- | --- | --- | --- | --- |
+| Northern Relay | (2, 6) | (2, 8) | (9, 6) | 65°, 60°, 30° | 60°, 55°, 35° |
+| Far Corner | (8, 8) | (4, 10) | (7, 4) | 35°, 55°, 35° | 40°, 60°, 40° |
 
 </details>
